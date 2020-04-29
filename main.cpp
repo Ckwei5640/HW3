@@ -1,6 +1,7 @@
 #include "mbed.h"
 #include "fsl_port.h"
 #include "fsl_gpio.h"
+#include <cmath>
 #include <string>
 #define UINT14_MAX        16383
 // FXOS8700CQ I2C address
@@ -35,7 +36,8 @@ uint8_t who_am_i, data[2], res[6];
 int16_t acc16;
 float t[3];
 int tilt = 0;
-std::string log[102];
+std::string log1[109];
+int i = 0;
 
 void FXOS8700CQ_readRegs(int addr, uint8_t * data, int len);
 void FXOS8700CQ_writeRegs(uint8_t * data, int len);
@@ -64,7 +66,7 @@ int main() {
         if(sw3 == 0){
             queue.call_every(100,&Logger);
             queue.call_every(500,&Blink);
-            queue.call_in(10100,&PrintLogger);
+            queue.call_in(10010,&PrintLogger);
             timeout.attach(callback(&queue, &EventQueue::break_dispatch),10.2);
             queue.dispatch();
         }
@@ -99,12 +101,21 @@ void Logger(){
          acc16 -= UINT14_MAX;
       t[2] = ((float)acc16) / 4096.0f;
 
-      // printf("FXOS8700Q ACC: X=%1.4f(%x%x) Y=%1.4f(%x%x) Z=%1.4f(%x%x)\r\n",\
+      if(abs(t[0]) > 0.707 | abs(t[1]) > 0.707){ //deg(45)>>sqrt(2)/2
+          tilt = 1;
+      }
+      else tilt = 0;
+
+      /* printf("FXOS8700Q ACC: X=%1.4f(%x%x) Y=%1.4f(%x%x) Z=%1.4f(%x%x)\r\n",\
             t[0], res[0], res[1],\
             t[1], res[2], res[3],\
             t[2], res[4], res[5]\
-      );
+      );*/
       // wait(1.0);
+
+      log1[i] =std::to_string(t[0]) + " " + std::to_string(t[1]) +" " + std::to_string(t[2]) + " " + std::to_string(tilt) + "\r\n";
+      // to_string convert to string type
+      i++;  
 }
 
 void Blink(){
@@ -112,8 +123,9 @@ void Blink(){
 }
 
 void PrintLogger(){
-    for(int j = 0; j < 103; j++){
-        pc.printf("%s",log[j]);
+    for(int i = 0; i < 100; i++){
+        pc.printf("%s",log1[i].c_str());
+        wait(0.001);
     }
 
 }
